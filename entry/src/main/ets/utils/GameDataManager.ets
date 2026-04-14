@@ -1,5 +1,8 @@
 
 import { Bubble, Level, Item, Equipment, Player } from '../models/GameModels';
+import preferences from '@ohos.data.preferences';
+import common from '@ohos.app.ability.common';
+
 export interface EquipmentData {
   id: number;
   currentLevel: number;
@@ -23,12 +26,15 @@ export class GameDataManager {
   public levels: Level[] = [];
   public items: Item[] = [];
   public equipments: Equipment[] = [];
+  private preferencesStore: preferences.Preferences | null = null;
+  private readonly STORE_NAME = 'game_data';
 
   private constructor() {
     this.player = new Player();
     this.initLevels();
     this.initItems();
     this.initEquipments();
+    this.initPreferences();
   }
 
   static getInstance(): GameDataManager {
@@ -107,6 +113,8 @@ export class GameDataManager {
     if (item && this.player.spendCoins(item.price)) {
       const currentCount = this.player.items.get(itemId) || 0;
       this.player.items.set(itemId, currentCount + 1);
+      // 自动保存数据
+      this.saveGameData();
       return true;
     }
     return false;
@@ -119,6 +127,8 @@ export class GameDataManager {
     const currentCount = this.player.items.get(itemId) || 0;
     if (currentCount > 0) {
       this.player.items.set(itemId, currentCount - 1);
+      // 自动保存数据
+      this.saveGameData();
       return true;
     }
     return false;
@@ -133,6 +143,8 @@ export class GameDataManager {
       const price = equipment.getUpgradePrice();
       if (this.player.spendCoins(price)) {
         equipment.currentLevel++;
+        // 自动保存数据
+        this.saveGameData();
         return true;
       }
     }
@@ -147,31 +159,69 @@ export class GameDataManager {
     this.player.addScore(score);
     this.player.addCoins(level.reward);
     this.player.currentLevel++;
+    // 自动保存数据
+    this.saveGameData();
+  }
+
+  /**
+   * 初始化Preferences存储
+   */
+  private async initPreferences(): Promise<void> {
+    try {
+      const context = getContext(this) as common.UIAbilityContext;
+      this.preferencesStore = await preferences.getPreferences(context, this.STORE_NAME);
+      await this.loadGameData();
+    } catch (e) {
+      console.error('Failed to init preferences:', e);
+    }
   }
 
   /**
    * 保存游戏数据
    */
-  saveGameData(): string {
-    const data: SaveData = {
-      totalScore: this.player.totalScore,
-      currentLevel: this.player.currentLevel,
-      coins: this.player.coins,
-      highestScore: this.player.highestScore,
-      items: Array.from(this.player.items.entries()),
-      equipments: Array.from(this.player.equipments.entries()).map((entry): EquipmentData => ({
-        id: entry[0],
-        currentLevel: entry[1].currentLevel
-      }))
-    };
-    return JSON.stringify(data);
+  async saveGameData(): Promise<void> {
+    if (!this.preferencesStore) {
+      console.error('Preferences not initialized');
+      return;
+    }
+
+    try {
+      const data: SaveData = {
+        totalScore: this.player.totalScore,
+        currentLevel: this.player.currentLevel,
+        coins: this.player.coins,
+        highestScore: this.player.highestScore,
+        items: Array.from(this.player.items.entries()),
+        equipments: Array.from(this.player.equipments.entries()).map((entry): EquipmentData => ({
+          id: entry[0],
+          currentLevel: entry[1].currentLevel
+        }))
+      };
+
+      await this.preferencesStore.put('game_data', JSON.stringify(data));
+      await this.preferencesStore.flush();
+      console.info('Game data saved successfully');
+    } catch (e) {
+      console.error('Failed to save game data:', e);
+    }
   }
 
   /**
    * 加载游戏数据
    */
-  loadGameData(jsonStr: string): void {
+  async loadGameData(): Promise<void> {
+    if (!this.preferencesStore) {
+      console.error('Preferences not initialized');
+      return;
+    }
+
     try {
+      const jsonStr = await this.preferencesStore.get('game_data', '') as string;
+      if (!jsonStr) {
+        console.info('No saved data found, using default values');
+        return;
+      }
+
       const data: SaveData = JSON.parse(jsonStr);
       this.player.totalScore = data.totalScore || 0;
       this.player.currentLevel = data.currentLevel || 1;
@@ -190,6 +240,7 @@ export class GameDataManager {
           }
         });
       }
+      console.info('Game data loaded successfully');
     } catch (e) {
       console.error('Failed to load game data:', e);
     }

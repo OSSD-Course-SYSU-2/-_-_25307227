@@ -100,6 +100,11 @@ export struct GameCanvas {
   @State magnetTimeLeft: number = 0;
   @State shieldActive: boolean = false;
 
+  // 连击追踪
+  private comboCount: number = 0;
+  private lastPopTime: number = 0;
+  private readonly COMBO_TIMEOUT: number = 2000; // 2秒内连击有效
+
   private gameManager: GameDataManager = GameDataManager.getInstance();
   private timer: number = -1;
   private animationTimer: number = -1;
@@ -139,9 +144,14 @@ export struct GameCanvas {
     this.magnetActive = false;
     this.magnetTimeLeft = 0;
     this.shieldActive = false;
+    this.comboCount = 0;
+    this.lastPopTime = 0;
 
     const level = this.gameManager.getCurrentLevel();
-    this.timeLeft = level.timeLimit;
+    // 应用时间延长装备效果
+    const timeEquip = this.gameManager.player.equipments.get(4);
+    const timeBonus = timeEquip ? timeEquip.getEffect() : 1;
+    this.timeLeft = Math.floor(level.timeLimit * timeBonus);
     this.generateBubbles(level.bubbleCount);
   }
 
@@ -263,10 +273,27 @@ export struct GameCanvas {
       this.createExplosion(bubble.x + bubble.offsetX, bubble.y + bubble.offsetY, bubble.color, bubble.radius);
       this.bubbles.splice(index, 1);
 
+      // 计算连击
+      const currentTime = Date.now();
+      if (currentTime - this.lastPopTime < this.COMBO_TIMEOUT) {
+        this.comboCount++;
+      } else {
+        this.comboCount = 1;
+      }
+      this.lastPopTime = currentTime;
+
       // 计算积分
       const scoreEquip = this.gameManager.player.equipments.get(1);
       const scoreBonus = scoreEquip ? scoreEquip.getEffect() : 1;
       let earnedScore = Math.floor(bubble.points * scoreBonus);
+
+      // 应用连击加成装备效果
+      const comboEquip = this.gameManager.player.equipments.get(5);
+      const comboBonus = comboEquip ? comboEquip.getEffect() : 1;
+      if (this.comboCount > 1) {
+        const comboMultiplier = 1 + (this.comboCount - 1) * 0.1 * comboBonus;
+        earnedScore = Math.floor(earnedScore * comboMultiplier);
+      }
 
       // 双倍积分道具效果
       if (this.doubleScoreActive) {
@@ -361,7 +388,7 @@ export struct GameCanvas {
 
           Text(`得分: ${this.score}`)
             .fontSize(16)
-            .fontColor('#FF6B6B')
+            .fontColor(this.score >= this.targetScore ? '#4ECDC4' : '#FF6B6B')
             .fontWeight(FontWeight.Bold)
 
           Blank()
@@ -370,6 +397,21 @@ export struct GameCanvas {
             .fontSize(14)
             .fontColor(this.timeLeft <= 10 ? '#FF0000' : '#333')
             .fontWeight(this.timeLeft <= 10 ? FontWeight.Bold : FontWeight.Medium)
+
+          // 提前结束按钮（达到目标分数时显示）
+          if (this.isPlaying && this.score >= this.targetScore) {
+            Button('结算')
+              .width(50)
+              .height(28)
+              .fontSize(12)
+              .fontWeight(FontWeight.Bold)
+              .backgroundColor('#4ECDC4')
+              .borderRadius(14)
+              .margin({ left: 8 })
+              .onClick(() => {
+                this.endGame();
+              })
+          }
         }
         .width('100%')
         .padding(8)

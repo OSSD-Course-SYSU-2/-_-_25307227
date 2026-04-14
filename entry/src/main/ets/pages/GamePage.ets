@@ -18,7 +18,6 @@ export struct GamePage {
   @State gameResult: string = '';
   @State resultScore: number = 0;
   @State equipments: Equipment[] = []; // 装备列表状态
-  @State refreshKey: number = 0; // 用于强制刷新的key
 
   private gameManager: GameDataManager = GameDataManager.getInstance();
 
@@ -33,11 +32,8 @@ export struct GamePage {
     this.playerCoins = this.gameManager.player.coins;
     this.playerLevel = this.gameManager.player.currentLevel;
     this.highestScore = this.gameManager.player.highestScore;
-    // 强制刷新装备列表
-    this.equipments = this.gameManager.equipments.map(eq => eq);
-    this.refreshKey++; // 触发UI刷新
-    this.playerLevel = this.gameManager.player.currentLevel;
-    this.highestScore = this.gameManager.player.highestScore;
+    // 更新装备列表 - 直接引用,不需要map
+    this.equipments = this.gameManager.equipments;
   }
 
   /**

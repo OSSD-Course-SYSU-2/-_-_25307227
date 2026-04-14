@@ -1,5 +1,6 @@
 import { GameDataManager } from '../utils/GameDataManager';
 import { Item, Equipment } from '../models/GameModels';
+import router from '@ohos.router';
 
 /**
  * 商店页面
@@ -13,13 +14,12 @@ struct ShopPage {
   @State coins: number = 0;
   @State showToast: boolean = false;
   @State toastMessage: string = '';
-  @State refreshKey: number = 0; // 用于强制刷新
 
   private gameManager: GameDataManager = GameDataManager.getInstance();
 
   aboutToAppear() {
     this.items = this.gameManager.items;
-    this.equipments = this.gameManager.equipments.map(eq => eq);
+    this.equipments = this.gameManager.equipments;
     this.coins = this.gameManager.player.coins;
   }
 
@@ -55,9 +55,8 @@ struct ShopPage {
   upgradeEquip(equipId: number): void {
     if (this.gameManager.upgradeEquipment(equipId)) {
       this.coins = this.gameManager.player.coins;
-      // 强制刷新装备列表显示
-      this.equipments = this.gameManager.equipments.map(eq => eq);
-      this.refreshKey++; // 触发UI刷新
+      // 更新装备列表显示
+      this.equipments = this.gameManager.equipments;
       this.showTip('升级成功！');
     } else {
       this.showTip('金币不足或已达最高等级！');
@@ -131,7 +130,7 @@ struct ShopPage {
           .backgroundColor('#999')
           .margin({ top: 20, bottom: 20 })
           .onClick(() => {
-            // 返回主页
+            router.back();
           })
       }
       .width('100%')
