@@ -13,12 +13,13 @@ struct ShopPage {
   @State coins: number = 0;
   @State showToast: boolean = false;
   @State toastMessage: string = '';
-  
+  @State refreshKey: number = 0; // 用于强制刷新
+
   private gameManager: GameDataManager = GameDataManager.getInstance();
-  
+
   aboutToAppear() {
     this.items = this.gameManager.items;
-    this.equipments = this.gameManager.equipments;
+    this.equipments = this.gameManager.equipments.map(eq => eq);
     this.coins = this.gameManager.player.coins;
   }
 
@@ -52,15 +53,14 @@ struct ShopPage {
    * 升级装备
    */
   upgradeEquip(equipId: number): void {
-    const equipment = this.gameManager.player.equipments.get(equipId);
-    if (equipment) {
-      if (this.gameManager.upgradeEquipment(equipId)) {
-        this.coins = this.gameManager.player.coins;
-        this.equipments = [...this.gameManager.equipments];
-        this.showTip('升级成功！');
-      } else {
-        this.showTip('金币不足或已达最高等级！');
-      }
+    if (this.gameManager.upgradeEquipment(equipId)) {
+      this.coins = this.gameManager.player.coins;
+      // 强制刷新装备列表显示
+      this.equipments = this.gameManager.equipments.map(eq => eq);
+      this.refreshKey++; // 触发UI刷新
+      this.showTip('升级成功！');
+    } else {
+      this.showTip('金币不足或已达最高等级！');
     }
   }
 

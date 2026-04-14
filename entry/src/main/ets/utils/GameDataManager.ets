@@ -40,13 +40,22 @@ export class GameDataManager {
 
   /**
    * 初始化关卡数据
+   * 难度设计：前期简单，中期适中，后期困难
    */
   private initLevels(): void {
     for (let i = 1; i <= 20; i++) {
-      const targetScore = 100 + (i - 1) * 50;
-      const bubbleCount = 20 + (i - 1) * 5;
-      const timeLimit = Math.max(30, 60 - (i - 1) * 2);
-      const reward = 50 + (i - 1) * 20;
+      // 目标分数：指数增长，后期难度大幅提升
+      const targetScore = Math.floor(150 * Math.pow(1.15, i - 1));
+
+      // 泡泡数量：前期少，后期多，增加点击难度
+      const bubbleCount = 15 + Math.floor((i - 1) * 8);
+
+      // 时间限制：前期充足，后期紧张，增加时间压力
+      const timeLimit = Math.max(25, 70 - Math.floor((i - 1) * 2.5));
+
+      // 奖励：随难度增加
+      const reward = 80 + (i - 1) * 30;
+
       this.levels.push(new Level(i, targetScore, bubbleCount, timeLimit, reward));
     }
   }

@@ -17,9 +17,11 @@ export struct GamePage {
   @State showResult: boolean = false;
   @State gameResult: string = '';
   @State resultScore: number = 0;
-  
+  @State equipments: Equipment[] = []; // 装备列表状态
+  @State refreshKey: number = 0; // 用于强制刷新的key
+
   private gameManager: GameDataManager = GameDataManager.getInstance();
-  
+
   aboutToAppear() {
     this.updatePlayerInfo();
   }
@@ -29,6 +31,11 @@ export struct GamePage {
    */
   updatePlayerInfo(): void {
     this.playerCoins = this.gameManager.player.coins;
+    this.playerLevel = this.gameManager.player.currentLevel;
+    this.highestScore = this.gameManager.player.highestScore;
+    // 强制刷新装备列表
+    this.equipments = this.gameManager.equipments.map(eq => eq);
+    this.refreshKey++; // 触发UI刷新
     this.playerLevel = this.gameManager.player.currentLevel;
     this.highestScore = this.gameManager.player.highestScore;
   }
@@ -379,25 +386,25 @@ export struct GamePage {
             .justifyContent(FlexAlign.Center)
             .backgroundColor('#E8F4F8')
             .borderRadius(10)
-            
+
             Column() {
               Text(item.name)
                 .fontSize(18)
                 .fontWeight(FontWeight.Bold)
                 .fontColor('#333')
-              
+
               Text(item.description)
                 .fontSize(14)
                 .fontColor('#666')
                 .margin({ top: 5 })
-              
+
               Row() {
                 Text(`💰 ${item.price}`)
                   .fontSize(16)
                   .fontColor('#FFD700')
-                
+
                 Blank()
-                
+
                 Text(`拥有: ${this.gameManager.player.items.get(item.id) || 0}`)
                   .fontSize(14)
                   .fontColor('#999')
@@ -408,17 +415,33 @@ export struct GamePage {
             .layoutWeight(1)
             .padding({ left: 15 })
             .alignItems(HorizontalAlign.Start)
-            
-            Button('购买')
-              .width(70)
-              .height(40)
-              .fontSize(14)
-              .backgroundColor('#4ECDC4')
-              .onClick(() => {
-                if (this.gameManager.buyItem(item.id)) {
-                  this.updatePlayerInfo();
-                }
-              })
+
+            // 购买和使用按钮
+            Column() {
+              Button('购买')
+                .width(60)
+                .height(32)
+                .fontSize(12)
+                .backgroundColor('#4ECDC4')
+                .onClick(() => {
+                  if (this.gameManager.buyItem(item.id)) {
+                    this.updatePlayerInfo();
+                  }
+                })
+
+              Button('使用')
+                .width(60)
+                .height(32)
+                .fontSize(12)
+                .backgroundColor('#FF6B6B')
+                .margin({ top: 5 })
+                .opacity((this.gameManager.player.items.get(item.id) || 0) > 0 ? 1 : 0.5)
+                .enabled((this.gameManager.player.items.get(item.id) || 0) > 0)
+                .onClick(() => {
+                  // 提示在游戏中使用
+                })
+            }
+            .width(70)
           }
           .width('100%')
           .padding(15)
@@ -442,7 +465,7 @@ export struct GamePage {
   @Builder
   EquipmentsList() {
     List() {
-      ForEach(this.gameManager.equipments, (equip: Equipment) => {
+      ForEach(this.equipments, (equip: Equipment) => {
         ListItem() {
           Row() {
             Column() {

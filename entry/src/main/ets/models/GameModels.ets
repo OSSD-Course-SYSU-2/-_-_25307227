@@ -10,12 +10,52 @@ export class Bubble {
   isAlive: boolean = true;
   points: number = 10;
 
+  // 动画相关属性
+  offsetX: number = 0;  // 水平偏移（用于浮动动画）
+  offsetY: number = 0;  // 垂直偏移（用于浮动动画）
+  speed: number = 1;    // 移动速度
+  direction: number = 0; // 移动方向（角度）
+  phase: number = 0;    // 动画相位
+
   constructor(id: number, x: number, y: number, color: string, points: number = 10) {
     this.id = id;
     this.x = x;
     this.y = y;
     this.color = color;
     this.points = points;
+    // 初始化随机动画参数
+    this.speed = 0.5 + Math.random() * 1.5;
+    this.direction = Math.random() * Math.PI * 2;
+    this.phase = Math.random() * Math.PI * 2;
+  }
+}
+
+/**
+ * 爆炸粒子数据模型
+ */
+export class ExplosionParticle {
+  id: number = 0;
+  x: number = 0;
+  y: number = 0;
+  vx: number = 0;  // x方向速度
+  vy: number = 0;  // y方向速度
+  radius: number = 5;
+  color: string = '#FF6B6B';
+  life: number = 1.0;  // 生命值（1.0到0.0）
+  decay: number = 0.05; // 衰减速度
+
+  constructor(id: number, x: number, y: number, color: string) {
+    this.id = id;
+    this.x = x;
+    this.y = y;
+    this.color = color;
+    // 随机方向和速度
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 3 + Math.random() * 5;
+    this.vx = Math.cos(angle) * speed;
+    this.vy = Math.sin(angle) * speed;
+    this.radius = 3 + Math.random() * 6;
+    this.decay = 0.03 + Math.random() * 0.04;
   }
 }
 
