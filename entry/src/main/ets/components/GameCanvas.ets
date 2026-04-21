@@ -115,6 +115,8 @@ export struct GameCanvas {
 
   aboutToAppear() {
     this.initGame();
+    // 启动动画，让泡泡立即开始移动
+    this.startAnimation();
   }
 
   aboutToDisappear() {
@@ -174,7 +176,11 @@ export struct GameCanvas {
     this.isPlaying = true;
     this.initGame();
     this.startTimer();
-    this.startAnimation();
+    // 动画已经在 aboutToAppear 中启动，这里不需要重复启动
+    // 但为了确保游戏重新开始时动画正常运行，检查并启动
+    if (this.animationTimer === -1) {
+      this.startAnimation();
+    }
   }
 
   startTimer(): void {
@@ -210,8 +216,30 @@ export struct GameCanvas {
     this.animationTimer = setInterval(() => {
       this.animationTime += 0.05;
 
-      // 更新泡泡浮动动画
+      // 更新泡泡移动和浮动动画
       this.bubbles.forEach((bubble: Bubble) => {
+        // 1. 更新泡泡位置（实际移动）
+        bubble.x += bubble.vx;
+        bubble.y += bubble.vy;
+
+        // 2. 边界检测和反弹
+        if (bubble.x - bubble.radius < 0) {
+          bubble.x = bubble.radius;
+          bubble.vx = Math.abs(bubble.vx); // 反弹
+        } else if (bubble.x + bubble.radius > this.canvasWidth) {
+          bubble.x = this.canvasWidth - bubble.radius;
+          bubble.vx = -Math.abs(bubble.vx); // 反弹
+        }
+
+        if (bubble.y - bubble.radius < 0) {
+          bubble.y = bubble.radius;
+          bubble.vy = Math.abs(bubble.vy); // 反弹
+        } else if (bubble.y + bubble.radius > this.canvasHeight) {
+          bubble.y = this.canvasHeight - bubble.radius;
+          bubble.vy = -Math.abs(bubble.vy); // 反弹
+        }
+
+        // 3. 更新浮动动画（在移动基础上的浮动效果）
         const floatRange = 8;
         bubble.offsetX = Math.sin(this.animationTime * bubble.speed + bubble.phase) * floatRange;
         bubble.offsetY = Math.cos(this.animationTime * bubble.speed * 0.8 + bubble.phase + Math.PI / 4) * floatRange * 0.6;

@@ -13,9 +13,14 @@ export class Bubble {
   // 动画相关属性
   offsetX: number = 0;  // 水平偏移（用于浮动动画）
   offsetY: number = 0;  // 垂直偏移（用于浮动动画）
-  speed: number = 1;    // 移动速度
+  speed: number = 1;    // 浮动速度
   direction: number = 0; // 移动方向（角度）
   phase: number = 0;    // 动画相位
+
+  // 移动相关属性
+  vx: number = 0;       // x方向移动速度
+  vy: number = 0;       // y方向移动速度
+  moveSpeed: number = 0; // 移动速度
 
   constructor(id: number, x: number, y: number, color: string, points: number = 10) {
     this.id = id;
@@ -27,6 +32,12 @@ export class Bubble {
     this.speed = 0.5 + Math.random() * 1.5;
     this.direction = Math.random() * Math.PI * 2;
     this.phase = Math.random() * Math.PI * 2;
+
+    // 初始化随机移动参数
+    this.moveSpeed = 0.3 + Math.random() * 0.7; // 移动速度范围：0.3-1.0
+    const moveAngle = Math.random() * Math.PI * 2; // 随机移动方向
+    this.vx = Math.cos(moveAngle) * this.moveSpeed;
+    this.vy = Math.sin(moveAngle) * this.moveSpeed;
   }
 }
 
