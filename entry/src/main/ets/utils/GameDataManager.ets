@@ -75,7 +75,13 @@ export class GameDataManager {
       new Item(2, '时间延长', '增加15秒游戏时间', 80, 'time_extend', 15),
       new Item(3, '磁铁', '自动吸引附近泡泡', 150, 'magnet', 20),
       new Item(4, '炸弹', '消除屏幕上所有泡泡', 200, 'bomb', 0),
-      new Item(5, '护盾', '保护一次失误', 120, 'shield', 0)
+      new Item(5, '护盾', '保护一次失误', 120, 'shield', 0),
+      // 新增道具
+      new Item(6, '三倍积分卡', '使用后20秒内获得三倍积分', 250, 'triple_score', 20),
+      new Item(7, '超级时间延长', '增加30秒游戏时间', 180, 'super_time_extend', 30),
+      new Item(8, '超级磁铁', '强力吸引所有泡泡到中心', 300, 'super_magnet', 15),
+      new Item(9, '冰冻', '冻结所有泡泡10秒', 220, 'freeze', 10),
+      new Item(10, '幸运星', '下次点击获得5倍积分', 160, 'lucky_star', 0)
     ];
   }
 
@@ -88,7 +94,13 @@ export class GameDataManager {
       new Equipment(2, '金币加成', '提升金币获取量', 180, 0.12),
       new Equipment(3, '泡泡大小', '增加泡泡显示大小', 150, 0.08),
       new Equipment(4, '时间延长', '增加关卡时间限制', 250, 0.1),
-      new Equipment(5, '连击加成', '提升连击积分倍率', 300, 0.2)
+      new Equipment(5, '连击加成', '提升连击积分倍率', 300, 0.2),
+      // 新增装备
+      new Equipment(6, '泡泡速度', '降低泡泡移动速度，更容易点击', 280, 0.15),
+      new Equipment(7, '爆炸范围', '点击泡泡时影响周围泡泡', 350, 0.2),
+      new Equipment(8, '幸运加成', '增加高分泡泡出现概率', 320, 0.18),
+      new Equipment(9, '时间奖励', '通关时额外奖励时间', 260, 0.12),
+      new Equipment(10, '超级连击', '大幅提升连击效果', 400, 0.25)
     ];
 
     // 初始化玩家装备

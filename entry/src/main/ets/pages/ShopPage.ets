@@ -327,7 +327,13 @@ struct ShopPage {
       'time_extend': '⏰',
       'magnet': '🧲',
       'bomb': '💣',
-      'shield': '🛡️'
+      'shield': '🛡️',
+      // 新增道具图标
+      'triple_score': '🌟',
+      'super_time_extend': '⏱️',
+      'super_magnet': '🧲',
+      'freeze': '❄️',
+      'lucky_star': '🍀'
     };
     return icons[effect] || '🎁';
   }
@@ -341,7 +347,13 @@ struct ShopPage {
       2: '💰',
       3: '🔍',
       4: '⏱️',
-      5: '🔥'
+      5: '🔥',
+      // 新增装备图标
+      6: '🐢',
+      7: '💥',
+      8: '🍀',
+      9: '⏰',
+      10: '⚡'
     };
     return icons[id] || '⚙️';
   }

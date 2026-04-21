@@ -99,6 +99,14 @@ export struct GameCanvas {
   @State magnetActive: boolean = false;
   @State magnetTimeLeft: number = 0;
   @State shieldActive: boolean = false;
+  // 新增道具状态
+  @State tripleScoreActive: boolean = false;
+  @State tripleScoreTimeLeft: number = 0;
+  @State superMagnetActive: boolean = false;
+  @State superMagnetTimeLeft: number = 0;
+  @State freezeActive: boolean = false;
+  @State freezeTimeLeft: number = 0;
+  @State luckyStarActive: boolean = false;
 
   // 连击追踪
   private comboCount: number = 0;
@@ -115,7 +123,18 @@ export struct GameCanvas {
 
   aboutToAppear() {
     this.initGame();
-    // 启动动画，让泡泡立即开始移动
+    // 启动动画，让泡泡立即开始移动（但游戏未开始，时间不会减少）
+    this.startAnimation();
+  }
+
+  /**
+   * 组件复用时的生命周期方法
+   * 当关卡改变时重新初始化游戏
+   */
+  aboutToReuse() {
+    console.log(`GameCanvas aboutToReuse: level changed to ${this.levelNumber}`);
+    this.initGame();
+    // 重新启动动画
     this.startAnimation();
   }
 
@@ -146,6 +165,14 @@ export struct GameCanvas {
     this.magnetActive = false;
     this.magnetTimeLeft = 0;
     this.shieldActive = false;
+    // 重置新增道具状态
+    this.tripleScoreActive = false;
+    this.tripleScoreTimeLeft = 0;
+    this.superMagnetActive = false;
+    this.superMagnetTimeLeft = 0;
+    this.freezeActive = false;
+    this.freezeTimeLeft = 0;
+    this.luckyStarActive = false;
     this.comboCount = 0;
     this.lastPopTime = 0;
 
@@ -162,28 +189,34 @@ export struct GameCanvas {
     const sizeEquip = this.gameManager.player.equipments.get(3);
     const sizeBonus = sizeEquip ? sizeEquip.getEffect() : 1;
 
+    console.log(`Generating ${count} bubbles...`);
     for (let i = 0; i < count; i++) {
       const radius = (22 + Math.random() * 18) * sizeBonus;
       const x = radius + Math.random() * (this.canvasWidth - radius * 2);
       const y = radius + Math.random() * (this.canvasHeight - radius * 2);
       const color = colors[Math.floor(Math.random() * colors.length)];
       const points = Math.floor(8 + Math.random() * 25);
-      this.bubbles.push(new Bubble(this.bubbleIdCounter++, x, y, color, points));
+      const bubble = new Bubble(this.bubbleIdCounter++, x, y, color, points);
+      this.bubbles.push(bubble);
+      console.log(`Bubble ${bubble.id} generated at (${x.toFixed(1)}, ${y.toFixed(1)}) with vx=${bubble.vx.toFixed(2)}, vy=${bubble.vy.toFixed(2)}`);
     }
+    console.log(`Total bubbles: ${this.bubbles.length}`);
   }
 
   startGame(): void {
     this.isPlaying = true;
     this.initGame();
     this.startTimer();
-    // 动画已经在 aboutToAppear 中启动，这里不需要重复启动
-    // 但为了确保游戏重新开始时动画正常运行，检查并启动
-    if (this.animationTimer === -1) {
-      this.startAnimation();
-    }
+    // 重新启动动画，确保新生成的泡泡能正常移动
+    this.startAnimation();
   }
 
   startTimer(): void {
+    // 防止重复启动定时器
+    if (this.timer !== -1) {
+      clearInterval(this.timer);
+    }
+    
     this.timer = setInterval(() => {
       if (this.timeLeft > 0) {
         this.timeLeft--;
@@ -201,6 +234,25 @@ export struct GameCanvas {
             this.magnetActive = false;
           }
         }
+        // 更新新增道具效果时间
+        if (this.tripleScoreActive) {
+          this.tripleScoreTimeLeft--;
+          if (this.tripleScoreTimeLeft <= 0) {
+            this.tripleScoreActive = false;
+          }
+        }
+        if (this.superMagnetActive) {
+          this.superMagnetTimeLeft--;
+          if (this.superMagnetTimeLeft <= 0) {
+            this.superMagnetActive = false;
+          }
+        }
+        if (this.freezeActive) {
+          this.freezeTimeLeft--;
+          if (this.freezeTimeLeft <= 0) {
+            this.freezeActive = false;
+          }
+        }
 
         // 随机生成新泡泡
         if (Math.random() < 0.2 && this.bubbles.length < 35) {
@@ -213,42 +265,71 @@ export struct GameCanvas {
   }
 
   startAnimation(): void {
+    // 防止重复启动动画定时器
+    if (this.animationTimer !== -1) {
+      clearInterval(this.animationTimer);
+    }
+    
     this.animationTimer = setInterval(() => {
       this.animationTime += 0.05;
 
+      // 每100帧打印一次泡泡总数
+      if (Math.floor(this.animationTime * 20) % 100 === 0) {
+        console.log(`Animation tick: ${this.bubbles.length} bubbles, time=${this.animationTime.toFixed(2)}`);
+      }
+
       // 更新泡泡移动和浮动动画
-      this.bubbles.forEach((bubble: Bubble) => {
-        // 1. 更新泡泡位置（实际移动）
-        bubble.x += bubble.vx;
-        bubble.y += bubble.vy;
+      // 创建新数组以触发状态更新
+      const updatedBubbles: Bubble[] = [];
+      this.bubbles.forEach((bubble: Bubble, index: number) => {
+        const oldX = bubble.x;
+        const oldY = bubble.y;
+        
+        // 冰冻效果：暂停泡泡移动
+        if (!this.freezeActive) {
+          // 1. 更新泡泡位置（实际移动）
+          bubble.x += bubble.vx;
+          bubble.y += bubble.vy;
 
-        // 2. 边界检测和反弹
-        if (bubble.x - bubble.radius < 0) {
-          bubble.x = bubble.radius;
-          bubble.vx = Math.abs(bubble.vx); // 反弹
-        } else if (bubble.x + bubble.radius > this.canvasWidth) {
-          bubble.x = this.canvasWidth - bubble.radius;
-          bubble.vx = -Math.abs(bubble.vx); // 反弹
-        }
+          // 2. 边界检测和反弹
+          if (bubble.x - bubble.radius < 0) {
+            bubble.x = bubble.radius;
+            bubble.vx = Math.abs(bubble.vx); // 反弹
+          } else if (bubble.x + bubble.radius > this.canvasWidth) {
+            bubble.x = this.canvasWidth - bubble.radius;
+            bubble.vx = -Math.abs(bubble.vx); // 反弹
+          }
 
-        if (bubble.y - bubble.radius < 0) {
-          bubble.y = bubble.radius;
-          bubble.vy = Math.abs(bubble.vy); // 反弹
-        } else if (bubble.y + bubble.radius > this.canvasHeight) {
-          bubble.y = this.canvasHeight - bubble.radius;
-          bubble.vy = -Math.abs(bubble.vy); // 反弹
+          if (bubble.y - bubble.radius < 0) {
+            bubble.y = bubble.radius;
+            bubble.vy = Math.abs(bubble.vy); // 反弹
+          } else if (bubble.y + bubble.radius > this.canvasHeight) {
+            bubble.y = this.canvasHeight - bubble.radius;
+            bubble.vy = -Math.abs(bubble.vy); // 反弹
+          }
         }
 
         // 3. 更新浮动动画（在移动基础上的浮动效果）
         const floatRange = 8;
         bubble.offsetX = Math.sin(this.animationTime * bubble.speed + bubble.phase) * floatRange;
         bubble.offsetY = Math.cos(this.animationTime * bubble.speed * 0.8 + bubble.phase + Math.PI / 4) * floatRange * 0.6;
+        
+        updatedBubbles.push(bubble);
+        
+        // 每100帧打印一次调试信息（只打印前3个泡泡）
+        if (index < 3 && Math.floor(this.animationTime * 20) % 100 === 0) {
+          console.log(`Animation: Bubble ${index} moved from (${oldX.toFixed(1)}, ${oldY.toFixed(1)}) to (${bubble.x.toFixed(1)}, ${bubble.y.toFixed(1)}), vx=${bubble.vx.toFixed(2)}, vy=${bubble.vy.toFixed(2)}`);
+        }
       });
+      
+      // 强制触发状态更新
+      this.bubbles = updatedBubbles;
 
       // 磁铁效果：吸引泡泡向中心移动
       if (this.magnetActive && this.bubbles.length > 0) {
         const centerX = this.canvasWidth / 2;
         const centerY = this.canvasHeight / 2;
+        const magnetBubbles: Bubble[] = [];
         this.bubbles.forEach((bubble: Bubble) => {
           const dx = centerX - bubble.x;
           const dy = centerY - bubble.y;
@@ -257,7 +338,27 @@ export struct GameCanvas {
             bubble.x += dx / dist * 2;
             bubble.y += dy / dist * 2;
           }
+          magnetBubbles.push(bubble);
         });
+        this.bubbles = magnetBubbles;
+      }
+
+      // 超级磁铁效果：强力吸引泡泡向中心移动
+      if (this.superMagnetActive && this.bubbles.length > 0) {
+        const centerX = this.canvasWidth / 2;
+        const centerY = this.canvasHeight / 2;
+        const superMagnetBubbles: Bubble[] = [];
+        this.bubbles.forEach((bubble: Bubble) => {
+          const dx = centerX - bubble.x;
+          const dy = centerY - bubble.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist > 30) {
+            bubble.x += dx / dist * 5; // 更强的吸引力
+            bubble.y += dy / dist * 5;
+          }
+          superMagnetBubbles.push(bubble);
+        });
+        this.bubbles = superMagnetBubbles;
       }
 
       this.updateParticles();
@@ -328,6 +429,17 @@ export struct GameCanvas {
         earnedScore *= 2;
       }
 
+      // 三倍积分道具效果
+      if (this.tripleScoreActive) {
+        earnedScore *= 3;
+      }
+
+      // 幸运星道具效果
+      if (this.luckyStarActive) {
+        earnedScore *= 5;
+        this.luckyStarActive = false; // 使用后失效
+      }
+
       this.score += earnedScore;
 
       // 添加金币
@@ -377,6 +489,30 @@ export struct GameCanvas {
       case 'shield':
         // 护盾
         this.shieldActive = true;
+        break;
+      // 新增道具效果
+      case 'triple_score':
+        // 三倍积分
+        this.tripleScoreActive = true;
+        this.tripleScoreTimeLeft = item.duration;
+        break;
+      case 'super_time_extend':
+        // 超级时间延长
+        this.timeLeft += item.duration;
+        break;
+      case 'super_magnet':
+        // 超级磁铁
+        this.superMagnetActive = true;
+        this.superMagnetTimeLeft = item.duration;
+        break;
+      case 'freeze':
+        // 冰冻：暂停泡泡移动
+        this.freezeActive = true;
+        this.freezeTimeLeft = item.duration;
+        break;
+      case 'lucky_star':
+        // 幸运星
+        this.luckyStarActive = true;
         break;
       default:
         return false;
@@ -572,7 +708,13 @@ export struct GameCanvas {
       'time_extend': '⏰',
       'magnet': '🧲',
       'bomb': '💣',
-      'shield': '🛡️'
+      'shield': '🛡️',
+      // 新增道具图标
+      'triple_score': '🌟',
+      'super_time_extend': '⏱️',
+      'super_magnet': '🧲',
+      'freeze': '❄️',
+      'lucky_star': '🍀'
     };
     return icons[effect] || '🎁';
   }

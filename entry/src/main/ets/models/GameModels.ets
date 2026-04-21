@@ -34,10 +34,11 @@ export class Bubble {
     this.phase = Math.random() * Math.PI * 2;
 
     // 初始化随机移动参数
-    this.moveSpeed = 0.3 + Math.random() * 0.7; // 移动速度范围：0.3-1.0
+    this.moveSpeed = 1.5 + Math.random() * 2.5; // 移动速度范围：1.5-4.0（增加速度）
     const moveAngle = Math.random() * Math.PI * 2; // 随机移动方向
     this.vx = Math.cos(moveAngle) * this.moveSpeed;
     this.vy = Math.sin(moveAngle) * this.moveSpeed;
+    console.log(`Bubble ${this.id} created: vx=${this.vx.toFixed(2)}, vy=${this.vy.toFixed(2)}, speed=${this.moveSpeed.toFixed(2)}`);
   }
 }
 
